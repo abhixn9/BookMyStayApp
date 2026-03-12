@@ -1,21 +1,23 @@
-abstract class Room {
+public class UseCase3InventorySetup {
 
-    protected String roomType;
-    protected int beds;
-    protected int size;
-    protected double price;
+    public static void main(String[] args) {
 
-    public Room(String roomType, int beds, int size, double price) {
-        this.roomType = roomType;
-        this.beds = beds;
-        this.size = size;
-        this.price = price;
-    }
+        System.out.println("=================================");
+        System.out.println("Book My Stay - Hotel Booking App");
+        System.out.println("Version 3.1");
+        System.out.println("=================================");
 
-    public void displayRoomDetails() {
-        System.out.println("Room Type : " + roomType);
-        System.out.println("Beds      : " + beds);
-        System.out.println("Size      : " + size + " sq.ft");
-        System.out.println("Price     : $" + price);
+        RoomInventory inventory = new RoomInventory();
+
+        inventory.displayInventory();
+
+        System.out.println("\nChecking availability...");
+        System.out.println("Single Room Available: "
+                + inventory.getAvailability("Single Room"));
+
+        System.out.println("\nUpdating availability...");
+        inventory.updateAvailability("Single Room", 8);
+
+        inventory.displayInventory();
     }
 }
