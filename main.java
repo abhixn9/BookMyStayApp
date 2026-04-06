@@ -1,7 +1,6 @@
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 
-// Reservation class (represents booking request)
+// Reservation (same as UC5)
 class Reservation {
     private String guestName;
     private String roomType;
@@ -20,49 +19,117 @@ class Reservation {
     }
 }
 
-// Booking Request Queue (FIFO)
-class BookingQueue {
+// Inventory Service
+class InventoryService {
+    private Map<String, Integer> inventory;
+
+    public InventoryService() {
+        inventory = new HashMap<>();
+    }
+
+    public void addRoom(String type, int count) {
+        inventory.put(type, count);
+    }
+
+    public int getAvailability(String type) {
+        return inventory.getOrDefault(type, 0);
+    }
+
+    public void decrement(String type) {
+        if (inventory.containsKey(type) && inventory.get(type) > 0) {
+            inventory.put(type, inventory.get(type) - 1);
+        }
+    }
+}
+
+// Booking Service (Allocation logic)
+class BookingService {
+
     private Queue<Reservation> queue;
+    private InventoryService inventory;
 
-    public BookingQueue() {
-        queue = new LinkedList<>();
+    // Track all allocated room IDs (global uniqueness)
+    private Set<String> allocatedRoomIds;
+
+    // Map room type → assigned room IDs
+    private Map<String, Set<String>> roomAllocations;
+
+    private int roomCounter = 1;
+
+    public BookingService(Queue<Reservation> queue, InventoryService inventory) {
+        this.queue = queue;
+        this.inventory = inventory;
+        this.allocatedRoomIds = new HashSet<>();
+        this.roomAllocations = new HashMap<>();
     }
 
-    // Add booking request (enqueue)
-    public void addRequest(Reservation reservation) {
-        queue.offer(reservation);
-        System.out.println("Request added: "
-                + reservation.getGuestName() + " -> "
-                + reservation.getRoomType());
-    }
+    // Process booking requests (FIFO)
+    public void processBookings() {
 
-    // View all requests in order
-    public void displayQueue() {
-        System.out.println("\nBooking Requests in Queue:");
+        System.out.println("Processing Booking Requests...\n");
 
-        for (Reservation r : queue) {
-            System.out.println(
-                    "Guest: " + r.getGuestName() +
-                            " | Room Type: " + r.getRoomType()
-            );
+        while (!queue.isEmpty()) {
+
+            Reservation r = queue.poll();
+            String type = r.getRoomType();
+
+            // Check availability
+            if (inventory.getAvailability(type) > 0) {
+
+                // Generate unique room ID
+                String roomId = type + "-" + roomCounter++;
+
+                // Ensure uniqueness using Set
+                if (!allocatedRoomIds.contains(roomId)) {
+
+                    allocatedRoomIds.add(roomId);
+
+                    // Map room type → allocated IDs
+                    roomAllocations
+                            .computeIfAbsent(type, k -> new HashSet<>())
+                            .add(roomId);
+
+                    // Update inventory immediately
+                    inventory.decrement(type);
+
+                    // Confirm booking
+                    System.out.println("Booking Confirmed:");
+                    System.out.println("Guest: " + r.getGuestName());
+                    System.out.println("Room Type: " + type);
+                    System.out.println("Room ID: " + roomId);
+                    System.out.println("--------------------------");
+
+                }
+            } else {
+                System.out.println("Booking Failed (No Availability): "
+                        + r.getGuestName() + " -> " + type);
+            }
         }
     }
 }
 
 // Main class
-public class UseCase5BookingRequestQueue {
+public class UseCase6RoomAllocationService {
 
     public static void main(String[] args) {
 
-        // Initialize queue
-        BookingQueue bookingQueue = new BookingQueue();
+        // Inventory setup
+        InventoryService inventory = new InventoryService();
+        inventory.addRoom("Single", 2);
+        inventory.addRoom("Double", 1);
+        inventory.addRoom("Suite", 1);
 
-        // Simulate booking requests
-        bookingQueue.addRequest(new Reservation("Alice", "Single"));
-        bookingQueue.addRequest(new Reservation("Bob", "Double"));
-        bookingQueue.addRequest(new Reservation("Charlie", "Suite"));
+        // Booking queue (FIFO)
+        Queue<Reservation> queue = new LinkedList<>();
+        queue.offer(new Reservation("Alice", "Single"));
+        queue.offer(new Reservation("Bob", "Single"));
+        queue.offer(new Reservation("Charlie", "Single")); // will fail
+        queue.offer(new Reservation("David", "Suite"));
 
-        // Display queue (FIFO order)
-        bookingQueue.displayQueue();
+        // Booking service
+        BookingService bookingService = new BookingService(queue, inventory);
+
+        // Process bookings
+        bookingService.processBookings();
     }
 }
